@@ -12,14 +12,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.timeroutetracker.ui.theme.TimeRouteTrackerTheme
-import com.example.timeroutetracker.utils.PermissionManager
+import com.example.timeroutetracker.components.PermissionManager
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
-    val perm = PermissionManager(this)
-    perm.tryRequestUsageStatsPermission()
     setContent {
       TimeRouteTrackerTheme {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -48,3 +46,4 @@ fun GreetingPreview() {
     Greeting("Android")
   }
 }
+

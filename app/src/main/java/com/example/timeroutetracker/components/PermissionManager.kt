@@ -1,4 +1,4 @@
-package com.example.timeroutetracker.utils
+package com.example.timeroutetracker.components
 
 import android.app.AppOpsManager
 import android.content.Context
