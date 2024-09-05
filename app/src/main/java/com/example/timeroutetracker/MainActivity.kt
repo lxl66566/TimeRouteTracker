@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.timeroutetracker.components.ExampleBarChart
 
 
 class MainActivity : ComponentActivity() {
@@ -48,7 +49,7 @@ fun MyApp() {
   ) { innerPadding ->
     Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
       when (selectedTab) {
-        0 -> ScreenContent("Time")
+        0 -> ExampleBarChart()
         1 -> ScreenContent("Route")
         2 -> ScreenContent("Settings")
       }
