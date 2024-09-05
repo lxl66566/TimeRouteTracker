@@ -79,8 +79,8 @@ fun BarChart(
       Box(
         modifier = Modifier
           .padding(horizontal = padding / 2)
-          .requiredWidthIn(min = barWidth)
           .weight(1f)
+          .requiredWidthIn(min = barWidth)
           .clickable { onBarClick(index) }
       ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -111,6 +111,19 @@ fun ExampleBarChart() {
   // 示例数据：每个柱体由多个成分组成（占比和颜色）
   val data = listOf(
     listOf(0.4f to Color.Red, 0.1f to Color.Blue),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
+    listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
     listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
     listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
     listOf(0.3f to Color.Green, 0.7f to Color.Yellow),
