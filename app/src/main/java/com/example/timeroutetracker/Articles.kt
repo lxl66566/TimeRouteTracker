@@ -129,6 +129,26 @@ fun ArticlePreview() {
         |46547897946321894
       """.trimMargin(),
       imageUrl = "https://developer.android.com/static/develop/ui/compose/images/m3-typography.png"
+    ),
+    Article(
+      id = 2,
+      title = "third Article",
+      content = """Article content preview...
+        |1245646546464645
+        |446611231564568
+        |456467489789465413165
+        |46547897946321894
+      """.trimMargin(),
+      imageUrl = "https://raw.github.com/android/architecture-samples//main//screenshots/screenshots.png"
+    ),
+    Article(
+      id = 3,
+      title = "fourth Article",
+      content = """Article content preview...
+        |1245646546464645
+        |446611231564568
+      """.trimMargin(),
+      imageUrl = "https://raw.github.com/android/nowinandroid//main//docs/images/screenshots.png"
     )
   )
   val selectedArticle by remember { mutableStateOf(MutableList(articles.size) { false }) }
