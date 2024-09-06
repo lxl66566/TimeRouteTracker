@@ -16,6 +16,7 @@ uiToolingPreview = "1.7.0"
 junitJunit = "4.12"
 uiTestAndroid = "1.7.0"
 foundationAndroid = "1.6.6"
+navigationRuntimeKtx = "2.8.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -41,6 +42,7 @@ ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", versio
 junit-junit = { group = "junit", name = "junit", version.ref = "junitJunit" }
 androidx-ui-test-android = { group = "androidx.compose.ui", name = "ui-test-android", version.ref = "uiTestAndroid" }
 androidx-foundation-android = { group = "androidx.compose.foundation", name = "foundation-android", version.ref = "foundationAndroid" }
+androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

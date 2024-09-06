@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -169,11 +173,11 @@ fun ArticlePreview() {
       imageUrl = "https://raw.github.com/android/nowinandroid//main//docs/images/screenshots.png"
     )
   )
-  val selectedArticle by remember { mutableStateOf(MutableList(articles.size) { false }) }
+  val foldedArticle by remember { mutableStateOf(MutableList(articles.size) { false }) }
   val navController = rememberNavController()
   NavHost(navController = navController, startDestination = "home") {
     composable("home") {
-      ArticleListScreen(articles = articles, articlesState = selectedArticle) { article ->
+      ArticleListScreen(articles = articles, articlesState = foldedArticle) { article ->
         navController.navigate(article.id.toString())
       }
     }
@@ -182,7 +186,7 @@ fun ArticlePreview() {
         ArticlePage(
           nav = navController,
           article = article.value,
-          selectedListRef = selectedArticle,
+          selectedListRef = foldedArticle,
           selectedListIndex = article.index,
           onClick = { },
         )
@@ -208,16 +212,26 @@ fun ArticlePage(
       content = { Text(text = "返回") },
       onClick = { nav.navigate("home") }
     )
-    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-      RadioButton(
-        selected = selected,
-        onClick = {
-          selected = !selected
-          selectedListRef.set(selectedListIndex, !selectedListRef.get(selectedListIndex))
-          onClick()
-        }
-      )
-      Text(text = "折叠文章", modifier = Modifier.fillMaxWidth())
+    MyButton(text = "折叠文章", selected = selected) {
+      selected = !selected
+      selectedListRef.set(selectedListIndex, !selectedListRef.get(selectedListIndex))
+      onClick()
     }
+  }
+}
+
+@Composable
+fun MyButton(text: String, selected: Boolean, onClick: () -> Unit) {
+  Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+    RadioButton(
+      selected = selected,
+      onClick = {
+        onClick()
+      }
+    )
+    ClickableText(
+      text = AnnotatedString(text, spanStyle = SpanStyle(color = Color.White)),
+      modifier = Modifier.fillMaxWidth()
+    ) { onClick() }//Text(text = text, modifier = Modifier.fillMaxWidth())
   }
 }
