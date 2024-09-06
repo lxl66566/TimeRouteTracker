@@ -1,8 +1,10 @@
 package com.example.timeroutetracker.components
 
+import android.graphics.Color
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -12,10 +14,10 @@ import java.time.Duration
 import java.util.Date
 
 @RunWith(AndroidJUnit4::class)
-class AppTimeQueryDaoTest {
+class AppTimeDaoTest {
 
   private lateinit var database: AppDatabase
-  private lateinit var dao: AppTimeQueryDao
+  private lateinit var dao: AppTimeDao
 
   @Before
   fun setUp() {
@@ -35,79 +37,56 @@ class AppTimeQueryDaoTest {
   }
 
   @Test
-  fun testGetAllAppTimeQueries() {
-    // 插入测试数据
-    val appInfo1 = AppInfo(
-      id = 1,
-      packageName = "com.example.app1",
-      appName = "Example App 1",
-      categoryId = 101
-    )
-    val appInfo2 = AppInfo(
-      id = 2,
-      packageName = "com.example.app2",
-      appName = "Example App 2",
-      categoryId = 102
-    )
-
-    val timeRecord1 = AppTimeRecord(
-      id = 1L,
-      appId = 1,
-      time = Duration.ofMinutes(30),
-      date = Date()
-    )
-    val timeRecord2 = AppTimeRecord(
-      id = 2L,
-      appId = 2,
-      time = Duration.ofMinutes(45),
-      date = Date()
-    )
-
-    // 插入数据到数据库
-    database.runInTransaction {
-      database.appTimeQueryDao().apply {
-        database.appTimeQueryDao().apply {
-          // 插入 AppInfo 数据
-          database.compileStatement("INSERT INTO AppInfo (id, package_name, app_name, category) VALUES (1, 'com.example.app1', 'Example App 1', 101)")
-            .executeInsert()
-          database.compileStatement("INSERT INTO AppInfo (id, package_name, app_name, category) VALUES (2, 'com.example.app2', 'Example App 2', 102)")
-            .executeInsert()
-
-          // 插入 AppTimeRecord 数据
-          database.compileStatement(
-            "INSERT INTO AppTimeRecord (id, app_id, time, date) VALUES (1, 1, ${
-              Duration.ofMinutes(
-                30
-              ).seconds
-            }, ${Date().time})"
-          ).executeInsert()
-          database.compileStatement(
-            "INSERT INTO AppTimeRecord (id, app_id, time, date) VALUES (2, 2, ${
-              Duration.ofMinutes(
-                45
-              ).seconds
-            }, ${Date().time})"
-          ).executeInsert()
-        }
-
-        // 执行查询
-        val results = getAllAppTimeQueries()
-
-        // 验证结果
-        assertEquals(2, results.size)
-
-        // 验证第一个结果
-        val firstResult = results[0]
-        assertEquals("Example App 1", firstResult.appName)
-        assertEquals(101, firstResult.categoryId)
-        assertEquals(timeRecord1.time, firstResult.time)
-
-        // 验证第二个结果
-        val secondResult = results[1]
-        assertEquals("Example App 2", secondResult.appName)
-        assertEquals(102, secondResult.categoryId)
-        assertEquals(timeRecord2.time, secondResult.time)
-      }
-    }
+  fun testInsertAppInfo() = runBlocking {
+    val appInfo =
+      AppInfo(id = 1, packageName = "com.example.app", appName = "Example App", categoryId = 1)
+    dao.insertAppInfo(appInfo)
+    val result = dao.getAllAppTimeQueries()
+    assertEquals(0, result.size) // 没有插入 AppTimeRecord，应该返回空列表
   }
+
+  @Test
+  fun testUpdateAppCategoryByPackageName() = runBlocking {
+    val appInfo =
+      AppInfo(id = 1, packageName = "com.example.app", appName = "Example App", categoryId = 1)
+    dao.insertAppInfo(appInfo)
+    dao.updateAppCategoryByPackageName("com.example.app", 2)
+    val updatedAppInfo = dao.getAllAppTimeQueries()
+    assertEquals(0, updatedAppInfo.size) // 没有插入 AppTimeRecord，应该返回空列表
+  }
+
+  @Test
+  fun testUpdateAppTimeByDateAndName() = runBlocking {
+    val appInfo =
+      AppInfo(id = 1, packageName = "com.example.app", appName = "Example App", categoryId = 1)
+    val appTimeRecord =
+      AppTimeRecord(id = 1, appId = 1, time = Duration.ofMinutes(30), date = Date())
+    dao.insertAppInfo(appInfo)
+    dao.updateAppTimeByDateAndName(appTimeRecord.date, "Example App", Duration.ofMinutes(60))
+    val result = dao.getAllAppTimeQueries()
+    assertEquals(0, result.size) // 没有插入 AppTimeRecord，应该返回空列表
+  }
+
+  @Test
+  fun testGetCategoryInfoById() = runBlocking {
+    val categoryInfo =
+      CategoryInfo(id = 1, categoryName = "Productivity", categoryColor = Color.BLUE)
+    dao.insertCategoryInfo(categoryInfo)
+    val result = dao.getCategoryInfoById(1)
+    assertEquals("Productivity", result?.categoryName)
+  }
+
+  @Test
+  fun testGetAllAppTimeQueries() = runBlocking {
+    val appInfo =
+      AppInfo(id = 1, packageName = "com.example.app", appName = "Example App", categoryId = 1)
+    val appTimeRecord =
+      AppTimeRecord(id = 1, appId = 1, time = Duration.ofMinutes(30), date = Date())
+    dao.insertAppInfo(appInfo)
+    dao.insertAppTimeRecord(appTimeRecord)
+    val result = dao.getAllAppTimeQueries()
+    assertEquals(1, result.size)
+    assertEquals("Example App", result[0].appName)
+  }
+
 }

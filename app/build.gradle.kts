@@ -65,7 +65,7 @@ dependencies {
   implementation(libs.room.common)
   implementation(libs.room.runtime)
   annotationProcessor(libs.room.compiler)
-  ksp(libs.room.compiler)
+//  ksp(libs.room.compiler)
   implementation(libs.room.ktx)
   testImplementation(libs.room.testing)
 }
