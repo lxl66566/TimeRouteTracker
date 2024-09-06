@@ -2,6 +2,7 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.android)
   alias(libs.plugins.kotlin.compose)
+  alias(libs.plugins.ksp)
 }
 
 android {
@@ -50,7 +51,7 @@ dependencies {
   implementation(libs.androidx.ui.tooling.preview)
   implementation(libs.androidx.material3)
   implementation(libs.androidx.material.icons.extended)
-  implementation(libs.junit.junit)
+  implementation(libs.junit)
   testImplementation(libs.junit)
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.espresso.core)
@@ -59,4 +60,12 @@ dependencies {
   debugImplementation(libs.ui.tooling)
   debugImplementation(libs.androidx.ui.tooling)
   debugImplementation(libs.androidx.ui.test.manifest)
+
+  // Room
+  implementation(libs.room.common)
+  implementation(libs.room.runtime)
+  annotationProcessor(libs.room.compiler)
+  ksp(libs.room.compiler)
+  implementation(libs.room.ktx)
+  testImplementation(libs.room.testing)
 }

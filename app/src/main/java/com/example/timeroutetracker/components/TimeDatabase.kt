@@ -1,0 +1,90 @@
+package com.example.timeroutetracker.components
+
+import androidx.room.ColumnInfo
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverter
+import androidx.room.TypeConverters
+import java.time.Duration
+import java.util.Date
+
+@Database(entities = [AppInfo::class, AppTimeRecord::class], version = 1)
+@TypeConverters(DurationConverters::class)
+abstract class AppDatabase : RoomDatabase() {
+  abstract fun appTimeQueryDao(): AppTimeQueryDao
+}
+
+@Dao
+interface AppTimeQueryDao {
+  @Query(
+    """
+        SELECT ai.app_name AS appName, 
+               ai.category AS categoryId, 
+               atr.date AS date, 
+               atr.time AS time 
+        FROM AppInfo ai 
+        JOIN AppTimeRecord atr ON ai.id = atr.app_id
+        """
+  )
+  fun getAllAppTimeQueries(): List<AppTimeQuery>
+}
+
+/*
+ * 存储应用信息
+ */
+@Entity
+data class AppInfo(
+  @PrimaryKey
+  val id: Int,
+  @ColumnInfo(name = "package_name")
+  val packageName: String,
+  @ColumnInfo(name = "app_name")
+  val appName: String,
+  @ColumnInfo(name = "category")
+  val categoryId: Int,
+)
+
+/*
+ * 每一条用时记录，适用于 hours, daily, monthly, yearly
+ */
+@Entity
+data class AppTimeRecord(
+  @PrimaryKey
+  val id: Long,
+  @ColumnInfo(name = "app_id")
+  val appId: Int,
+  @ColumnInfo(name = "time")
+  val time: Duration,
+  @ColumnInfo(name = "date")
+  val date: Date,
+)
+
+/*
+ * 查询的结果结构体
+ */
+data class AppTimeQuery(
+  // 应用名
+  val appName: String,
+  // 分类
+  val categoryId: Int,
+  // 开始时间
+  val date: Date,
+  // 持续时间
+  val time: Duration,
+)
+
+class DurationConverters {
+  @TypeConverter
+  fun fromDuration(duration: Duration?): Long? {
+    return duration?.seconds
+  }
+
+  @TypeConverter
+  fun toDuration(seconds: Long?): Duration? {
+    return seconds?.let { Duration.ofSeconds(it) }
+  }
+}
