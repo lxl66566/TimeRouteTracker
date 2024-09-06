@@ -116,28 +116,46 @@ fun ArticlePreview() {
     Article(
       id = 0,
       title = "Article Title",
-      content = "Article content preview",
+      content = "" +
+              "如果應用程式需要處理大量結構化資料， 將資料保存在本機最常見的用途是快取相關的 以便在裝置無法存取網路時 仍可在離線狀態下瀏覽這些內容\n" +
+              "\n" +
+              "Room 持續性程式庫透過 SQLite 提供抽象層， 可以順暢存取資料庫，並充分發揮 SQLite 的效用我們要用 Room 具有以下優點：\n" +
+              "\n" +
+              "提供 SQL 查詢的編譯時間驗證。\n" +
+              "盡可能減少重複且容易出錯的樣板的便利註解 再也不是件繁重乏味的工作\n" +
+              "簡化資料庫遷移路徑。\n" +
+              "基於這些考量，我們強烈建議改用 Room 直接使用 SQLite API。\n",
       imageUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgiEwahggVQFLRook98z_RvVeMSmRMiiXr8lgJba3SF28oZ4bBNWeAmUWm2QA5I_bKfXMT5xzuHzQfEsyYfREgMhMObvoRYEH7OpEocvOWQMvrxwXh1tFmZkcQjruxtvamnyQRHNHI1mXusS36uMdoVYPZbiWKFr7v_ZTiuj3-xWnr9GyihxoT07LOrcAU/s1600/image5.png"
     ),
     Article(
       id = 1,
       title = "another Article",
-      content = """Article content preview...
-        |1245646546464645
-        |446611231564568
-        |456467489789465413165
-        |46547897946321894
+      content = """Room 有三個主要元件：
+
+保留目標的資料庫類別 並做為 應用程式保留資料。
+代表的資料實體 納入應用程式資料庫中的資料表。
+資料存取物件 (DAO)， 為應用程式提供可用於查詢、更新、插入及刪除的方法 儲存資料庫資料
+資料庫類別為應用程式提供與 建立資料庫反過來，應用程式可以使用 DAO 從 視為關聯資料實體物件的執行個體。這個應用程式也可以 使用定義的資料實體更新對應資料表中的資料列，或者 即可建立要插入的新資料列。圖 1 說明瞭 Room 的不同元件
+      實作範例
+本節說明採用單一標頭的 Room 資料庫實作範例 以及單一 DAO
+
+資料實體
+以下程式碼定義 User 資料實體。「User」的每個例項 代表應用程式資料庫中 user 資料表的某一列。
       """.trimMargin(),
       imageUrl = "https://developer.android.com/static/develop/ui/compose/images/m3-typography.png"
     ),
     Article(
       id = 2,
       title = "third Article",
-      content = """Article content preview...
-        |1245646546464645
-        |446611231564568
-        |456467489789465413165
-        |46547897946321894
+      content = """
+        如要進一步瞭解 DAO，請參閱使用 Room 存取資料 DAO。
+
+資料庫
+以下程式碼定義了用於保存資料庫的 AppDatabase 類別。 AppDatabase 定義了資料庫設定，並做為應用程式的主要設定 存取保留點。資料庫類別必須符合 下列情況：
+
+類別必須使用 @Database 註解， 包含 entities 陣列，列出所有與資料庫相關聯的資料實體。
+類別必須是可擴充的抽象類別 RoomDatabase。
+針對與資料庫關聯的每個 DAO 類別，系統會提供資料庫類別 必須定義無引數並傳回例項的抽象方法 DAO 類別
       """.trimMargin(),
       imageUrl = "https://raw.github.com/android/architecture-samples//main//screenshots/screenshots.png"
     ),
