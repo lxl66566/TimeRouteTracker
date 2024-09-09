@@ -1,5 +1,6 @@
 package com.example.timeroutetracker
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,49 +27,64 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.timeroutetracker.components.ExampleBarChart
+import com.example.timeroutetracker.database.DB
 import com.example.timeroutetracker.ui.theme.TimeRouteTrackerTheme
 
 
 class MainActivity : ComponentActivity() {
+  lateinit var db: DB
+  lateinit var settings: Settings
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
+
+    db = DB(this)
+    settings = Settings(db)
+
     setContent {
       TimeRouteTrackerTheme {
-        MyApp()
+        MyApp(this)
       }
     }
   }
-}
 
-@Preview(showBackground = true, name = "App")
-@Composable
-fun MyApp() {
-  var selectedTab by remember { mutableStateOf(0) } // 当前选中的按钮索引
+  @Composable
+  fun MyApp(context: Context = LocalContext.current) {
+    var selectedTab by remember { mutableStateOf(0) } // 当前选中的按钮索引
 
-  Scaffold(
-    bottomBar = {
-      BottomNavigationBar(selectedTab) { newIndex ->
-        selectedTab = newIndex
+    Scaffold(
+      bottomBar = {
+        BottomNavigationBar(selectedTab) { newIndex ->
+          selectedTab = newIndex
+        }
       }
-    }
-  ) { innerPadding ->
-    Box(modifier = Modifier
-      .fillMaxSize()
-      .padding(innerPadding)) {
-      when (selectedTab) {
-        0 -> ExampleBarChart()
-        1 -> ScreenContent("Route")
-        2 -> SettingsView()
+    ) { innerPadding ->
+      Box(
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(innerPadding)
+      ) {
+        when (selectedTab) {
+          0 -> ExampleBarChart()
+          1 -> ScreenContent("Route")
+          2 -> SettingsView()
+        }
       }
     }
   }
+
+  @Composable
+  fun SettingsView() {
+    settings.TotalSettings()
+  }
 }
+
 
 @Composable
 fun ScreenContent(text: String) {

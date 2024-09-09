@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.example.timeroutetracker.utils.MySerde
 
 val DATABASE_VERSION = 1
 
@@ -76,7 +77,7 @@ class DB(public val context: Context, databaseName: String = "timeroutetracker.d
     return KVTable(tableName)
   }
 
-  inner class KVTable(private val tableName: String) {
+  open inner class KVTable(private val tableName: String) {
     init {
       createTable()
       createIndex()
@@ -188,6 +189,24 @@ class DB(public val context: Context, databaseName: String = "timeroutetracker.d
             it.getString(it.getColumnIndexOrThrow("value"))
         }
         result
+      }
+    }
+
+    inline fun <reified T> putAny(key: String, value: T) {
+      put(key, MySerde.serialize(value))
+    }
+
+    inline fun <reified T> getAny(key: String): T? {
+      return get(key)?.let { MySerde.deserialize(it) }
+    }
+
+    inline fun <reified T> getOrInitAny(key: String, defaultValue: T): T {
+      val value = getAny<T>(key)
+      return if (value != null) {
+        value
+      } else {
+        putAny(key, defaultValue)
+        defaultValue
       }
     }
   }

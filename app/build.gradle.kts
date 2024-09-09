@@ -45,6 +45,7 @@ android {
 dependencies {
   implementation(kotlin("reflect"))
   testImplementation(kotlin("test"))
+  androidTestImplementation(kotlin("test"))
   testImplementation(libs.kotlin.test.junit)
   implementation(libs.kotlinx.serialization.json)
 
