@@ -1,5 +1,11 @@
 package com.example.timeroutetracker
 
+import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
+import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
@@ -26,6 +33,8 @@ class Settings(private val db: DB) {
     const val SETTINGS_TABLE_NAME = "settings"
     const val BACKGROUND_ROUTE = "Track route in background"
     const val SAMPLE_RATE_ROUTE = "GPS sample interval"
+    val DEFAULT_EXPORT_FOLDER_URI =
+      Uri.fromFile(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS))
   }
 
   private val kvTable = db.kvTable(SETTINGS_TABLE_NAME)
@@ -56,7 +65,9 @@ class Settings(private val db: DB) {
       contentPadding = groupPaddingValues,
       enabled = true
     ) {
-      SettingsMenuLink(title = { Text("Change category") }) { TODO() }
+      SettingsMenuLink(title = { Text("Change category") }) {
+        //TODO()
+      }
     }
   }
 
@@ -102,6 +113,8 @@ class Settings(private val db: DB) {
           kvTable.putAny(SAMPLE_RATE_ROUTE, sampleRateState)
         }
       )
+
+      // TODO: Map provider
     }
   }
 
@@ -114,8 +127,67 @@ class Settings(private val db: DB) {
       enabled = true
     ) {
 
-      SettingsMenuLink(title = { Text("Export data") }) { TODO() }
-      SettingsMenuLink(title = { Text("Import data") }) { TODO() }
+//      var selectedFolder by remember { mutableStateOf<Uri?>(null) }
+//      val exportLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(
+//        contract = ActivityResultContracts.OpenDocumentTree(),
+//      ) { uri ->
+//        selectedFolder = uri
+//        val exportTarget =
+//          (selectedFolder ?: DEFAULT_EXPORT_URI).buildUpon().appendPath(db.getDatabaseName())
+//            .build()
+//        db.exportDatabaseToUri(exportTarget)
+//      }
+
+      val context = LocalContext.current
+      var selectedFile by remember { mutableStateOf<Uri?>(null) }
+      val importLauncher: ManagedActivityResultLauncher<Array<String>, Uri?> =
+        rememberLauncherForActivityResult(
+          contract = ActivityResultContracts.OpenDocument(),
+        ) { uri ->
+          selectedFile = uri
+          val importTarget =
+            (selectedFile ?: DEFAULT_EXPORT_FOLDER_URI).buildUpon().appendPath(db.getDatabaseName())
+              .build()
+          db.importDatabaseFromUri(importTarget)
+        }
+
+      SettingsMenuLink(title = { Text("Export data") }) {
+        try {
+          val exportTo =
+            DEFAULT_EXPORT_FOLDER_URI.buildUpon().appendPath(db.getDatabaseName()).build()
+          val res = db.exportDatabaseToUri(exportTo)
+          if (!res) {
+            Toast.makeText(
+              context,
+              "Export failed by unknown reason",
+              Toast.LENGTH_SHORT
+            ).show()
+          } else {
+            Toast.makeText(
+              context,
+              "Export to `${exportTo.path}` successfully",
+              Toast.LENGTH_SHORT
+            ).show()
+          }
+        } catch (e: Exception) {
+          Toast.makeText(
+            context,
+            "Export failed: ${e.message}",
+            Toast.LENGTH_SHORT
+          ).show()
+        }
+      }
+      SettingsMenuLink(title = { Text("Import data") }) {
+        try {
+          importLauncher.launch(arrayOf("*/*"))
+        } catch (e: Exception) {
+          Toast.makeText(
+            context,
+            "Import failed: ${e.message}",
+            Toast.LENGTH_SHORT
+          ).show()
+        }
+      }
     }
   }
 }

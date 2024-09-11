@@ -1,10 +1,17 @@
 package com.example.timeroutetracker.components
 
+import android.Manifest
+import android.app.Activity
 import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 val PermissionTag = "Permission"
 
@@ -35,6 +42,21 @@ class PermissionManager(private val context: Context) {
   fun tryRequestUsageStatsPermission() {
     if (!hasUsageStatsPermission()) {
       requestUsageStatsPermission()
+    }
+  }
+
+  @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+  fun requestWritePermission() {
+    if (ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.READ_MEDIA_IMAGES
+      ) != PackageManager.PERMISSION_GRANTED
+    ) {
+      ActivityCompat.requestPermissions(
+        context as Activity,
+        arrayOf(Manifest.permission.READ_MEDIA_IMAGES),
+        1001
+      )
     }
   }
 }

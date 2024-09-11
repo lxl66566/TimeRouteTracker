@@ -27,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,8 +36,8 @@ import com.example.timeroutetracker.ui.theme.TimeRouteTrackerTheme
 
 
 class MainActivity : ComponentActivity() {
-  lateinit var db: DB
-  lateinit var settings: Settings
+  private lateinit var db: DB
+  private lateinit var settings: Settings
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -46,6 +45,7 @@ class MainActivity : ComponentActivity() {
 
     db = DB(this)
     settings = Settings(db)
+
 
     setContent {
       TimeRouteTrackerTheme {
@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
   }
 
   @Composable
-  fun MyApp(context: Context = LocalContext.current) {
+  fun MyApp(context: Context = applicationContext) {
     var selectedTab by remember { mutableStateOf(0) } // 当前选中的按钮索引
 
     Scaffold(
@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
       ) {
         when (selectedTab) {
           0 -> ExampleBarChart()
-          1 -> ScreenContent("Route")
+          1 -> GoogleMapView()
           2 -> SettingsView()
         }
       }

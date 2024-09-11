@@ -8,6 +8,7 @@ import kotlin.test.assertEquals
 
 class DBTest {
 
+  private lateinit var context: Context
   private lateinit var db: DB
   private lateinit var kvTable: DB.KVTable
 
@@ -17,7 +18,7 @@ class DBTest {
 
   @Before
   fun setUp() {
-    val context: Context = ApplicationProvider.getApplicationContext()
+    context = ApplicationProvider.getApplicationContext()
     db = DB(context, "test_database")
     kvTable = db.kvTable("test_kv_table")
   }
@@ -67,4 +68,27 @@ class DBTest {
     val updatedValue = kvTable.getAny<TestEnum>("test_key")
     assertEquals(newValue, updatedValue, "Enum value should be returned")
   }
+
+//  @Test(expected = InvalidSqliteException::class)
+//  fun testImportFromInvalidFile() {
+//    val contentValues = ContentValues().apply {
+//      put(MediaStore.Downloads.DISPLAY_NAME, "test_file.txt")
+//      put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+//      put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS) // 保存到 Downloads 目录
+//    }
+//
+//    val uri: Uri? =
+//      context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+//
+//    uri?.let {
+//      context.contentResolver.openOutputStream(it)?.use { outputStream ->
+//        outputStream.write("asd123".toByteArray())
+//      }
+//      db.importDatabaseFromUri(it)
+//      Log.i("FileWrite", "Imported successfully")
+//    } ?: run {
+//      // 处理插入失败的情况
+//      Log.e("FileWrite", "Failed to create file in Downloads")
+//    }
+//  }
 }

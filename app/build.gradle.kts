@@ -4,6 +4,7 @@ plugins {
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.ksp)
   alias(libs.plugins.kotlinx.serialization)
+  alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
 }
 
 android {
@@ -39,11 +40,15 @@ android {
   }
   buildFeatures {
     compose = true
+    viewBinding = true
   }
 }
 
 dependencies {
   implementation(kotlin("reflect"))
+  implementation(libs.androidx.appcompat)
+  implementation(libs.play.services.maps)
+  implementation(libs.androidx.constraintlayout)
   testImplementation(kotlin("test"))
   androidTestImplementation(kotlin("test"))
   testImplementation(libs.kotlin.test.junit)
@@ -81,6 +86,13 @@ dependencies {
   implementation(libs.room.ktx)
   testImplementation(libs.room.testing)
 
+  // Compose Settings https://github.com/alorma/Compose-Settings
   implementation(libs.composeSettings.ui)
   implementation(libs.composeSettings.ui.extended)
+
+  // Google Maps
+  // https://developers.google.com/maps/documentation/android-sdk/maps-compose?hl=zh-cn
+  implementation(libs.maps.compose)
+  implementation(libs.maps.compose.widgets)
+  implementation(libs.maps.compose.utils)
 }

@@ -5,14 +5,78 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.net.Uri
+import com.example.timeroutetracker.utils.InvalidSqliteException
 import com.example.timeroutetracker.utils.MySerde
+import com.example.timeroutetracker.utils.Validation
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 
-val DATABASE_VERSION = 1
+const val DATABASE_VERSION = 1
+
+
+/*
+ * 提供了数据库获取上下文的抽象，用于其他 interface
+ */
+interface GetMembers {
+  fun getContext(): Context
+  fun getDatabaseName(): String
+}
+
+/*
+ * 提供了数据库的备份和恢复抽象
+ */
+interface BackupableDb : GetMembers {
+  fun exportDatabaseToUri(uri: Uri): Boolean {
+    val databaseFile = getContext().getDatabasePath(getDatabaseName())
+    getContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+      FileInputStream(databaseFile).use { inputStream ->
+        copyStream(inputStream, outputStream)
+      }
+    }
+    return File(uri.path!!).exists()
+  }
+
+  /*
+   * 从 uri 导入数据库
+   * 返回 false 表示文件格式错误
+   */
+  fun importDatabaseFromUri(uri: Uri) {
+    val databaseFile = getContext().getDatabasePath(getDatabaseName())
+    if (!Validation.isSqliteFile(databaseFile)) {
+      throw InvalidSqliteException("Not a sqlite file")
+    }
+    getContext().contentResolver.openInputStream(uri)?.use { inputStream ->
+      FileOutputStream(databaseFile).use { outputStream ->
+        copyStream(inputStream, outputStream)
+      }
+    }
+  }
+
+  private fun copyStream(inputStream: InputStream, outputStream: OutputStream) {
+    val buffer = ByteArray(1024)
+    var bytesRead: Int
+    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+      outputStream.write(buffer, 0, bytesRead)
+    }
+  }
+}
+
 
 /*
  * 数据库抽象层，提供了 Table 的内部结构
  */
-class DB(public val context: Context, databaseName: String = "timeroutetracker.db") {
+class DB(
+  private val context: Context,
+  private val databaseName: String = "timeroutetracker.sqlite3"
+) :
+  BackupableDb {
+  override fun getContext(): Context = context
+  override fun getDatabaseName(): String = databaseName
+
   private val dbHelper: DBHelper = DBHelper(context, databaseName)
 
   class DBHelper(context: Context, databaseName: String) :
@@ -211,4 +275,6 @@ class DB(public val context: Context, databaseName: String = "timeroutetracker.d
     }
   }
 }
+
+
 
