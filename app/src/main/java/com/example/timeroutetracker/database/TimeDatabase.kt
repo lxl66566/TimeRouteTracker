@@ -1,4 +1,4 @@
-package com.example.timeroutetracker.components
+package com.example.timeroutetracker.database
 
 import androidx.room.ColumnInfo
 import androidx.room.Dao
@@ -9,7 +9,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.RoomDatabase
-import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import java.time.Duration
 import java.util.Date
@@ -18,7 +17,7 @@ import java.util.Date
   entities = [AppInfo::class, AppTimeRecord::class, AppTimeQuery::class, CategoryInfo::class],
   version = 1
 )
-@TypeConverters(DurationConverters::class)
+@TypeConverters(DurationConverter::class)
 abstract class AppDatabase : RoomDatabase() {
   abstract fun appTimeQueryDao(): AppTimeDao
 }
@@ -118,14 +117,4 @@ data class AppTimeQuery(
   val time: Duration,
 )
 
-class DurationConverters {
-  @TypeConverter
-  fun fromDuration(duration: Duration?): Long? {
-    return duration?.seconds
-  }
 
-  @TypeConverter
-  fun toDuration(seconds: Long?): Duration? {
-    return seconds?.let { Duration.ofSeconds(it) }
-  }
-}

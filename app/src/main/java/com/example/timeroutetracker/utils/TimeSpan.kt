@@ -1,6 +1,7 @@
 package com.example.timeroutetracker.utils
 
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
@@ -13,15 +14,17 @@ class TimeSpan(
     require(!end.isBefore(start)) { "End time must be after start time." }
   }
 
-  // Convert TimeSpan to Duration
-  fun toDuration(): Duration = Duration.between(start, end)
-
-  // Get start and end time in Millis since the epoch
-  fun startInMillis(): Long = start.toInstant(ZoneOffset.UTC).toEpochMilli()
-  fun endInMillis(): Long = end.toInstant(ZoneOffset.UTC).toEpochMilli()
-
-  // Create a TimeSpan from a specific point in time to now
   companion object {
+    /*
+     * Get the timespan of the current day
+     */
+    fun today(): TimeSpan {
+      val todayStart = LocalDate.now().atStartOfDay()
+      val todayEnd = todayStart.plusDays(1).minusNanos(1)
+      return TimeSpan(todayStart, todayEnd)
+    }
+
+    // Create a TimeSpan from a specific point in time to now
     fun from(start: LocalDateTime): TimeSpan {
       return TimeSpan(start, LocalDateTime.now())
     }
@@ -31,6 +34,14 @@ class TimeSpan(
       return TimeSpan(now, now.plus(duration))
     }
   }
+
+  // Convert TimeSpan to Duration
+  fun toDuration(): Duration = Duration.between(start, end)
+
+  // Get start and end time in Millis since the epoch
+  fun startInMillis(): Long = start.toInstant(ZoneOffset.UTC).toEpochMilli()
+  fun endInMillis(): Long = end.toInstant(ZoneOffset.UTC).toEpochMilli()
+
 
   // Check if a certain time point is within the timespan
   fun contains(time: LocalDateTime): Boolean {

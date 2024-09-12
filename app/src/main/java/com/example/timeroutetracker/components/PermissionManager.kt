@@ -13,7 +13,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
-val PermissionTag = "Permission"
+const private val TAG = "PermissionManager"
 
 class PermissionManager(private val context: Context) {
   /*
@@ -27,7 +27,7 @@ class PermissionManager(private val context: Context) {
       this.context.packageName
     )
     val result = mode == AppOpsManager.MODE_ALLOWED
-    Log.d(PermissionTag, "check Usage stats permission: $result")
+    Log.d(TAG, "check Usage stats permission: $result")
     return result
   }
 

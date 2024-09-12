@@ -2,8 +2,10 @@ package com.example.timeroutetracker.database
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.google.android.gms.maps.model.LatLng
 import org.junit.Before
 import org.junit.Test
+import java.time.LocalDateTime
 import kotlin.test.assertEquals
 
 class DBTest {
@@ -91,4 +93,24 @@ class DBTest {
 //      Log.e("FileWrite", "Failed to create file in Downloads")
 //    }
 //  }
+
+  @Test
+  fun testRouteTable() {
+    val routeTable: DB.routeTable = db.routeTable("test_route_table1")
+    val items = listOf(
+      RouteItem(LocalDateTime.of(2024, 1, 1, 12, 0), LatLng(37.7749, -122.4194)),
+      RouteItem(LocalDateTime.of(2024, 1, 1, 13, 0), LatLng(37.7833, -122.4167)),
+      RouteItem(LocalDateTime.of(2024, 1, 1, 14, 0), LatLng(37.7852, -122.4151)),
+      RouteItem(LocalDateTime.of(2024, 1, 1, 15, 0), LatLng(37.7854, -122.4101)),
+    )
+    items.forEach { routeTable.insertRouteItem(it) }
+    val span =
+      routeTable.getSpan(LocalDateTime.of(2024, 1, 1, 12, 0), LocalDateTime.of(2024, 1, 1, 14, 0))
+    assertEquals(3, span.size, "Span should be 3")
+    assertEquals(
+      span,
+      listOf(items[0], items[1], items[2]).map { it.location },
+      "Items should be the same as span()"
+    )
+  }
 }

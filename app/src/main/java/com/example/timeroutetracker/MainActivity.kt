@@ -2,6 +2,7 @@ package com.example.timeroutetracker
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -27,10 +28,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.timeroutetracker.components.ExampleBarChart
+import com.example.timeroutetracker.components.LocationManager
 import com.example.timeroutetracker.database.DB
 import com.example.timeroutetracker.ui.theme.TimeRouteTrackerTheme
 
@@ -38,6 +38,8 @@ import com.example.timeroutetracker.ui.theme.TimeRouteTrackerTheme
 class MainActivity : ComponentActivity() {
   private lateinit var db: DB
   private lateinit var settings: Settings
+  private lateinit var rt: RouteTracker
+  private lateinit var locationManager: LocationManager
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -45,13 +47,23 @@ class MainActivity : ComponentActivity() {
 
     db = DB(this)
     settings = Settings(db)
-
+    rt = RouteTracker(this, db, settings)
+    locationManager = LocationManager(this, 1000) { location ->
+      // Handle location update
+      Log.i("MyTest", "Location: ${location.latitude}, ${location.longitude}")
+    }
 
     setContent {
       TimeRouteTrackerTheme {
         MyApp(this)
       }
     }
+
+  }
+
+  override fun onDestroy() {
+    super.onDestroy()
+    locationManager.stopLocationUpdates()
   }
 
   @Composable
@@ -72,7 +84,8 @@ class MainActivity : ComponentActivity() {
       ) {
         when (selectedTab) {
           0 -> ExampleBarChart()
-          1 -> GoogleMapView()
+          1 -> rt.RouteTrackerView()
+//          1 -> rt.GoogleMapView()
           2 -> SettingsView()
         }
       }
@@ -83,17 +96,6 @@ class MainActivity : ComponentActivity() {
   fun SettingsView() {
     settings.TotalSettings()
   }
-}
-
-
-@Composable
-fun ScreenContent(text: String) {
-  Text(
-    text = text,
-    fontSize = 24.sp,
-    textAlign = TextAlign.Center,
-    modifier = Modifier.fillMaxSize()
-  )
 }
 
 @Composable

@@ -49,6 +49,7 @@ dependencies {
   implementation(libs.androidx.appcompat)
   implementation(libs.play.services.maps)
   implementation(libs.androidx.constraintlayout)
+  implementation(libs.play.services.location)
   testImplementation(kotlin("test"))
   androidTestImplementation(kotlin("test"))
   testImplementation(libs.kotlin.test.junit)
@@ -77,6 +78,8 @@ dependencies {
   debugImplementation(libs.ui.tooling)
   debugImplementation(libs.androidx.ui.tooling)
   debugImplementation(libs.androidx.ui.test.manifest)
+  implementation(libs.androidx.runtime.livedata)
+  implementation(libs.androidx.lifecycle.runtime.compose)
 
   // Room
   implementation(libs.room.common)

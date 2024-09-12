@@ -26,19 +26,30 @@ import com.alorma.compose.settings.ui.SettingsSlider
 import com.alorma.compose.settings.ui.SettingsSwitch
 import com.example.timeroutetracker.database.DB
 import com.example.timeroutetracker.utils.Base
+import com.example.timeroutetracker.utils.SettingsNotFoundException
 
 
 class Settings(private val db: DB) {
   companion object {
     const val SETTINGS_TABLE_NAME = "settings"
     const val BACKGROUND_ROUTE = "Track route in background"
+    const val BACKGROUND_ROUTE_DEFAULT = true
     const val SAMPLE_RATE_ROUTE = "GPS sample interval"
+    const val SAMPLE_RATE_ROUTE_DEFAULT = 1.0f
     val DEFAULT_EXPORT_FOLDER_URI =
       Uri.fromFile(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS))
   }
 
   private val kvTable = db.kvTable(SETTINGS_TABLE_NAME)
   private val groupPaddingValues = PaddingValues(8.dp)
+
+  fun getSetting(settingItem: String): Any {
+    return when (settingItem) {
+      BACKGROUND_ROUTE -> kvTable.get(BACKGROUND_ROUTE) ?: BACKGROUND_ROUTE_DEFAULT
+      SAMPLE_RATE_ROUTE -> kvTable.get(SAMPLE_RATE_ROUTE) ?: SAMPLE_RATE_ROUTE_DEFAULT
+      else -> throw SettingsNotFoundException("$settingItem not found")
+    }
+  }
 
   @Composable
   fun TotalSettings() {
@@ -83,7 +94,7 @@ class Settings(private val db: DB) {
         mutableStateOf(
           kvTable.getOrInitAny(
             BACKGROUND_ROUTE,
-            defaultValue = true
+            defaultValue = BACKGROUND_ROUTE_DEFAULT
           )
         )
       }
@@ -91,7 +102,7 @@ class Settings(private val db: DB) {
         mutableStateOf(
           kvTable.getOrInitAny(
             SAMPLE_RATE_ROUTE,
-            1.0f
+            SAMPLE_RATE_ROUTE_DEFAULT
           )
         )
       }

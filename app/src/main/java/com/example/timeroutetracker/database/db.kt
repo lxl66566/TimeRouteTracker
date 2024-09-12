@@ -8,12 +8,15 @@ import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
 import com.example.timeroutetracker.utils.InvalidSqliteException
 import com.example.timeroutetracker.utils.MySerde
+import com.example.timeroutetracker.utils.TimeSpan
 import com.example.timeroutetracker.utils.Validation
+import com.google.android.gms.maps.model.LatLng
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.time.LocalDateTime
 
 const val DATABASE_VERSION = 1
 
@@ -78,6 +81,9 @@ class DB(
   override fun getDatabaseName(): String = databaseName
 
   private val dbHelper: DBHelper = DBHelper(context, databaseName)
+  private val LocalDateTimeConverter = LocalDateTimeConverter()
+  private val DurationConverter = DurationConverter()
+  private val LatLngConverter = LatLngConverter()
 
   class DBHelper(context: Context, databaseName: String) :
     SQLiteOpenHelper(context, databaseName, null, DATABASE_VERSION) {
@@ -272,6 +278,71 @@ class DB(
         putAny(key, defaultValue)
         defaultValue
       }
+    }
+  }
+
+  open inner class routeTable(private val tableName: String = "Route") {
+    init {
+      createTable()
+      createIndex()
+    }
+
+    private fun createTable() {
+      dbHelper.writableDatabase.use { db ->
+        val createTableSQL = """
+                    CREATE TABLE IF NOT EXISTS $tableName (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        time INTEGER,
+                        location BLOB
+                    )
+                """
+        db.execSQL(createTableSQL)
+      }
+    }
+
+    private fun createIndex() {
+      dbHelper.writableDatabase.use { db ->
+        val createIndexSQL = """
+                    CREATE INDEX IF NOT EXISTS idx_time ON $tableName (time)
+                """
+        db.execSQL(createIndexSQL)
+      }
+    }
+
+    fun insertRouteItem(item: RouteItem) {
+      val values = ContentValues().apply {
+        put("time", LocalDateTimeConverter.from(item.time))
+        put("location", LatLngConverter.from(item.location))
+      }
+      dbHelper.writableDatabase.use { db ->
+        db.insertWithOnConflict(tableName, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+      }
+    }
+
+    fun getSpan(start: LocalDateTime, end: LocalDateTime): MutableList<LatLng> {
+      val cursor = dbHelper.readableDatabase.query(
+        tableName,
+        arrayOf("location"),
+        "time >= ? AND time <= ?",
+        arrayOf(
+          LocalDateTimeConverter.from(start).toString(),
+          LocalDateTimeConverter.from(end).toString()
+        ),
+        null,
+        null,
+        "time ASC"
+      )
+      return cursor.use {
+        val result = mutableListOf<LatLng>()
+        while (it.moveToNext()) {
+          result.add(LatLngConverter.to(it.getBlob(it.getColumnIndexOrThrow("location"))))
+        }
+        result
+      }
+    }
+
+    fun getSpan(span: TimeSpan): MutableList<LatLng> {
+      return getSpan(span.start, span.end)
     }
   }
 }
