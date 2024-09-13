@@ -58,17 +58,20 @@ fun getHighContrastColor(backgroundColor: Int?): Int? {
 
 @Composable
 fun BarChart(
-  data: List<List<Pair<Float, Color>>>,  // 每个柱体的数据（成分占比及颜色）
+  data: List<List<Pair<Long, Color>>>,  // 每个柱体的数据（成分占比及颜色）
+  dataUpLimit: Long,  // 数据上限
   modifier: Modifier = Modifier,
   xAxisBegin: Int = 0,  // 横坐标起点
   xAxisStep: Int? = null,  // 横坐标间隔
+  yAxisTransform: (Long) -> Long = { it },  // 纵坐标转换
   onBarClick: (Int) -> Unit,  // 每个柱体的点击处理
 ) {
+  val dataAffined = data.map { it.map { Pair(it.first.toFloat() / dataUpLimit, it.second) } }
   val density = LocalDensity.current // 获取当前的 Density 实例
   val pxToDp = { px: Int -> with(density) { px.toDp() } }
   val dpToSp = { dp: Dp -> with(density) { dp.toSp() } }
 
-  val summedHeight = data.map { it.map { it -> it.first }.sum() } // 获取每个柱体的总高度
+  val summedHeight = dataAffined.map { it.map { it -> it.first }.sum() } // 获取每个柱体的总高度
   val maxHeight = summedHeight.maxOrNull() ?: 1f  // 获取最大高度来进行比例缩放
 
   // 自动计算柱体宽度和间距
@@ -93,7 +96,7 @@ fun BarChart(
         widthDp = pxToDp(coordinates.size.width)
       }
   ) {
-    val eachWidth = widthDp / (data.size)
+    val eachWidth = widthDp / (dataAffined.size)
     val (barWidth, padding) = linearRatio(
       aMin = minBarWidth,
       aMax = maxBarWidth,
@@ -101,7 +104,7 @@ fun BarChart(
       bExpectedMax = expectedMaxPadding,
       x = eachWidth
     )
-    data.forEachIndexed { index, barData ->
+    dataAffined.forEachIndexed { index, barData ->
       // 所有柱体填充满 Row 区域，并添加 padding
       Box(
         modifier = Modifier
@@ -132,21 +135,24 @@ fun BarChart(
           }
 
           // 画柱形图的顶部数据（柱体高度）
-          val lastColor = barData.lastOrNull()?.second
-          val textPaint = TextPaint().apply {
-            textSize = 8.sp.toPx()
-            color = getHighContrastColor(lastColor?.toArgb()) ?: defaultTextColor.toArgb()
-          }
-          // 绘制文本
-          drawIntoCanvas { canvas ->
-            // 计算文本位置
-            val text = "%.2f".format(summedHeight[index])
-            val textWidth = textPaint.measureText(text)
-            val textHeight = textPaint.fontMetrics.run { ascent - descent }
+          if (summedHeight[index] != 0f) {
+            val lastColor = barData.lastOrNull()?.second
+            val textPaint = TextPaint().apply {
+              textSize = 8.sp.toPx()
+              color = getHighContrastColor(lastColor?.toArgb()) ?: defaultTextColor.toArgb()
+            }
+            // 绘制文本
+            drawIntoCanvas { canvas ->
+              // 计算文本位置
+              val text =
+                "%d".format(yAxisTransform((summedHeight[index] * dataUpLimit).toLong()))
+              val textWidth = textPaint.measureText(text)
+              val textHeight = textPaint.fontMetrics.run { ascent - descent }
 
-            val textX = (size.width - textWidth) / 2
-            val textY = size.height - accumulatedHeight - textHeight
-            canvas.nativeCanvas.drawText(text, textX, textY, textPaint)
+              val textX = (size.width - textWidth) / 2
+              val textY = size.height - accumulatedHeight - textHeight
+              canvas.nativeCanvas.drawText(text, textX, textY, textPaint)
+            }
           }
         }
         // 显示横坐标
@@ -171,23 +177,24 @@ fun BarChart(
 fun ExampleBarChart() {
   // 示例数据：每个柱体由多个成分组成（占比和颜色）
   val data = listOf(
-    listOf(0.4f to Color.Red, 0.1f to Color.Blue),
-    listOf(0.2f to Color.Green, 0.4f to Color.Yellow),
-    listOf(0.3f to Color.Green, 0.3f to Color.Yellow),
-    listOf(0.3f to Color.Green, 0.2f to Color.Yellow),
-    listOf(0.3f to Color.Green, 0.5f to Color.Yellow),
-    listOf(0.15f to Color.Green, 0.4f to Color.Yellow),
-    listOf(0.4f to Color.Magenta, 0.5f to Color.Cyan)
+    listOf(120L to Color.Red, 200L to Color.Blue),
+    listOf(210L to Color.Green, 200L to Color.Yellow),
+    listOf(150L to Color.Green, 46L to Color.Yellow),
+    listOf(450L to Color.Green),
+    listOf(232L to Color.Green, 201L to Color.Yellow),
+    listOf(95L to Color.Green, 31L to Color.Yellow),
+    listOf(20L to Color.Magenta, 246L to Color.Cyan)
   )
 
   Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
     BarChart(
       data = data,
+      dataUpLimit = 1000,
       modifier = Modifier
         .fillMaxSize()
         .padding(start = 0.dp, top = 10.dp, end = 0.dp, bottom = 10.dp),
       xAxisBegin = 1,
-      xAxisStep = 3
+      xAxisStep = 3,
     ) { index ->
       Log.i("Test", "Bar $index clicked")
     }

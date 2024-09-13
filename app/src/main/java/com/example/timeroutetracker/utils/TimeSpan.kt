@@ -7,9 +7,15 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
 enum class SpanType {
+  HOUR,
   DAY,
+  WEEK,
   MONTH,
   YEAR
+}
+
+interface splitableTimeSpan {
+  fun splitTimeSpan(): List<TimeSpan>
 }
 
 open class TimeSpan(
@@ -83,6 +89,7 @@ open class TimeSpan(
 
   open fun getSpanType(): SpanType {
     return when {
+      isHour() -> SpanType.HOUR
       isDay() -> SpanType.DAY
       isMonth() -> SpanType.MONTH
       isYear() -> SpanType.YEAR
@@ -90,8 +97,16 @@ open class TimeSpan(
     }
   }
 
+  fun isHour(): Boolean {
+    return (Duration.between(start, end).abs() - Duration.ofHours(1)).abs() < Duration.ofMinutes(1)
+  }
+
   fun isDay(): Boolean {
     return (Duration.between(start, end).abs() - Duration.ofDays(1)).abs() < Duration.ofMinutes(1)
+  }
+
+  fun isWeek(): Boolean {
+    return (Duration.between(start, end).abs() - Duration.ofDays(7)).abs() < Duration.ofMinutes(10)
   }
 
   fun isMonth(): Boolean {
@@ -105,7 +120,9 @@ open class TimeSpan(
 
   open fun prevSpan(): TimeSpan {
     return when {
+      isHour() -> TimeSpan(start.minusHours(1), end.minusHours(1))
       isDay() -> TimeSpan(start.minusDays(1), end.minusDays(1))
+      isWeek() -> TimeSpan(start.minusWeeks(1), end.minusWeeks(1))
       isMonth() -> TimeSpan(start.minusMonths(1), end.minusMonths(1))
       isYear() -> TimeSpan(start.minusYears(1), end.minusYears(1))
       else -> throw IllegalStateException("The current span type is not recognized.")
@@ -113,13 +130,60 @@ open class TimeSpan(
   }
 }
 
-class DayTimeSpan(start: LocalDateTime, end: LocalDateTime) : TimeSpan(start, end) {
+class HourTimeSpan(start: LocalDateTime, end: LocalDateTime) : TimeSpan(start, end) {
+  override fun prevSpan(): TimeSpan {
+    return TimeSpan(start.minusHours(1), end.minusHours(1))
+  }
+
+  override fun getSpanType(): SpanType {
+    return SpanType.HOUR
+  }
+}
+
+class DayTimeSpan(start: LocalDateTime, end: LocalDateTime) : TimeSpan(start, end),
+  splitableTimeSpan {
+
+  companion object {
+    fun default(): DayTimeSpan {
+      val temp = today()
+      return DayTimeSpan(temp.start, temp.end)
+    }
+
+    fun fromLocalDate(date: LocalDate): DayTimeSpan {
+      return DayTimeSpan(date.atStartOfDay(), date.atStartOfDay().plusDays(1).minusNanos(1))
+    }
+  }
+
   override fun prevSpan(): TimeSpan {
     return TimeSpan(start.minusDays(1), end.minusDays(1))
   }
 
   override fun getSpanType(): SpanType {
     return SpanType.DAY
+  }
+
+  override fun splitTimeSpan(): List<TimeSpan> {
+    val result = mutableListOf<TimeSpan>()
+    var currentStart = start
+
+    while (currentStart.isBefore(end)) {
+      val currentEnd = currentStart.plusHours(1).coerceAtMost(end)
+      result.add(TimeSpan(currentStart, currentEnd))
+      currentStart = currentEnd
+    }
+
+    return result
+  }
+
+}
+
+class WeekTimeSpan(start: LocalDateTime, end: LocalDateTime) : TimeSpan(start, end) {
+  override fun prevSpan(): TimeSpan {
+    return TimeSpan(start.minusWeeks(1), end.minusWeeks(1))
+  }
+
+  override fun getSpanType(): SpanType {
+    return SpanType.WEEK
   }
 }
 

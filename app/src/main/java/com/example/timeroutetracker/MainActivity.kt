@@ -81,7 +81,7 @@ class MainActivity : FragmentActivity() {
           .padding(innerPadding)
       ) {
         when (selectedTab) {
-          0 -> tt.UsageStatsView()
+          0 -> tt.UsageStatsViewExample()
           1 -> AndroidFragment<RouteTracker>(
             modifier = Modifier.fillMaxSize(),
             fragmentState = fragmentState

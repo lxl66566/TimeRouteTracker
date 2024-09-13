@@ -12,3 +12,9 @@ class Base {
     }
   }
 }
+
+fun <T> Sequence<T>.repeatIndefinitely(): Sequence<T> =
+  generateSequence(this) { this }.flatten()
+
+fun <T> List<T>.repeatIndefinitely(): Sequence<T> =
+  this.asSequence().repeatIndefinitely()

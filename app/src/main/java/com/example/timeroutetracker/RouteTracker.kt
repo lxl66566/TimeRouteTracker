@@ -214,7 +214,8 @@ class RouteTracker(
     }
     val mapVisible by remember { mutableStateOf(true) }
     val startPosState = rememberMarkerState(position = defaultLatLng)
-    val polylineSpanPointsMocked: MutableState<RouteInfo> =
+    // https://github.com/googlemaps/android-maps-compose/issues/105
+    val polylineSpanPointsMocked: MutableState<MutableList<LatLng>> =
       remember { mutableStateOf(mutableListOf(defaultLatLng)) }
 
     // get database
@@ -224,7 +225,8 @@ class RouteTracker(
         _data.value?.clear()
         _data.value?.addAll(todayData)
       } else {
-        polylineSpanPointsMocked.value = todayData
+        polylineSpanPointsMocked.value.clear()
+        polylineSpanPointsMocked.value.addAll(todayData)
       }
       todayData.first().let {
         startPosState.position = it
