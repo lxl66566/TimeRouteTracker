@@ -17,8 +17,13 @@
 package com.example.timeroutetracker
 
 //import com.google.maps.android.compose.theme.MapsComposeSampleTheme
+import android.content.Context
+import android.location.Location
+import android.os.Bundle
 import android.util.Log
-import androidx.activity.ComponentActivity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,6 +33,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,10 +44,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.timeroutetracker.components.EnumDropdownMenu
 import com.example.timeroutetracker.components.LocationManager
 import com.example.timeroutetracker.database.DB
@@ -61,8 +67,6 @@ import com.google.maps.android.compose.MarkerInfoWindowContent
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 private const val TAG = "RouteTracker"
@@ -82,36 +86,60 @@ val styleSpan = StyleSpan(
 
 // 定义一个 ViewModel 来管理后台任务
 class RouteTracker(
-  private val mainActivity: ComponentActivity,
-  private val db: DB,
-  private val settings: Settings = Settings(db),
+  db: DB? = null,
+  settings: Settings? = null,
 ) :
-  ViewModel() {
-
+  Fragment() {
+  lateinit var db: DB
+  lateinit var settings: Settings
   lateinit var locationManager: LocationManager
+  var callback: ((Location) -> Unit)? = null
+
+  override fun onAttach(context: Context) {
+    super.onAttach(context)
+    db = DB(context)
+    settings = Settings(db)
+  }
+
+  override fun onDetach() {
+    super.onDetach()
+  }
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    // 启动后台任务
+    val intervalSetting = settings.getProxySettings().getSampleRate()
+    locationManager = LocationManager(this, (intervalSetting * 1000).toLong())
+    callback.let { locationManager.setCallback(it) }
+  }
+
+  override fun onDestroy() {
+    super.onDestroy()
+//    locationManager.stopLocationUpdates()
+  }
+
+  override fun onCreateView(
+    inflater: LayoutInflater, container: ViewGroup?,
+    savedInstanceState: Bundle?
+  ): View {
+    return ComposeView(requireContext()).apply {
+      setContent {
+        MaterialTheme {
+          Surface(modifier = Modifier.fillMaxSize()) {
+            RouteTrackerView()
+          }
+        }
+      }
+    }
+  }
 
 
   /*
    * The data could not be null!!!
    */
   private val _data: MutableLiveData<RouteInfo> =
-    MutableLiveData<RouteInfo>(mutableListOf(defaultLatLng, singapore6))
+    MutableLiveData<RouteInfo>(mutableListOf(defaultLatLng))
   val data get() = _data
-  private val routeTable = db.routeTable()
-
-
-  init {
-    startBackgroundTask()
-  }
-
-  private fun startBackgroundTask() {
-    viewModelScope.launch {
-      while (true) {
-        delay(1000) // 延迟1秒
-//        _data.value // TODO
-      }
-    }
-  }
 
   @Composable
   fun RouteTrackerView() {
@@ -170,34 +198,35 @@ class RouteTracker(
       mutableStateOf(MapProperties(mapType = mapType))
     }
     val mapVisible by remember { mutableStateOf(true) }
+    val routeTable = db.routeTable()
+    val startPosState = rememberMarkerState(position = defaultLatLng)
 
     // get database
-    val intervalSetting = settings.getSetting(Settings.SAMPLE_RATE_ROUTE) as Float
     val todayData = routeTable.getSpan(TimeSpan.today())
     if (todayData.isNotEmpty()) {
       _data.value = todayData
+      _data.value!!.first().let {
+        startPosState.position = it
+        cameraPositionState.position = CameraPosition.fromLatLngZoom(it, defaultZoom)
+      }
     }
+
     val polylineSpanPoints = data.observeAsState().value
-    locationManager = LocationManager(mainActivity, (intervalSetting * 1000).toLong()) { location ->
+    callback = { location ->
       // Handle location update
       val latlng = LatLng(location.latitude, location.longitude)
       Log.i(TAG, "get Location: $latlng")
-      _data.value?.add(latlng)
+      if (_data.value?.size == 1 && _data.value?.get(0) == defaultLatLng) {
+        _data.value?.set(0, latlng)
+        startPosState.position = latlng
+        cameraPositionState.position = CameraPosition.fromLatLngZoom(latlng, defaultZoom)
+      } else {
+        _data.value?.add(latlng)
+      }
       routeTable.insertRouteItem(RouteItem(LocalDateTime.now(), latlng))
-      cameraPositionState.position = CameraPosition.fromLatLngZoom(latlng, defaultZoom)
     }
-
-
-    // get location
-    val startPosState = rememberMarkerState(position = defaultLatLng)
-    var currentPos = locationManager.getLocation()
-    if (currentPos != null) {
-      startPosState.position = currentPos
-      cameraPositionState.position =
-        CameraPosition.fromLatLngZoom(startPosState.position, defaultZoom)
-    } else {
-      currentPos = defaultLatLng
-    }
+    locationManager.setCallback(callback)
+//    locationManager.startLocationUpdates()
 
 
 //  var darkMode by remember { mutableStateOf(mapColorScheme) }
@@ -263,6 +292,13 @@ class RouteTracker(
 //        modifier = Modifier
 //          .testTag("toggleDarkMode")
 //      )
+        MapButton(text = "Test", onClick = {
+          val test = locationManager.getLocation()
+          Log.i(TAG, "test: $test")
+          test?.let {
+            cameraPositionState.position = CameraPosition.fromLatLngZoom(test, defaultZoom)
+          }
+        })
       }
     }
   }

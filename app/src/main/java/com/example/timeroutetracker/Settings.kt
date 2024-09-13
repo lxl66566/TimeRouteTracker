@@ -1,5 +1,6 @@
 package com.example.timeroutetracker
 
+import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import android.widget.Toast
@@ -11,7 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +29,7 @@ import com.alorma.compose.settings.ui.SettingsSlider
 import com.alorma.compose.settings.ui.SettingsSwitch
 import com.example.timeroutetracker.database.DB
 import com.example.timeroutetracker.utils.Base
-import com.example.timeroutetracker.utils.SettingsNotFoundException
+import kotlin.system.exitProcess
 
 
 class Settings(private val db: DB) {
@@ -40,20 +43,49 @@ class Settings(private val db: DB) {
       Uri.fromFile(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS))
   }
 
-  private val kvTable = db.kvTable(SETTINGS_TABLE_NAME)
+  private var kvTable = db.kvTable(SETTINGS_TABLE_NAME)
   private val groupPaddingValues = PaddingValues(8.dp)
+  private val proxy = SettingsProxy()
 
-  fun getSetting(settingItem: String): Any {
-    return when (settingItem) {
-      BACKGROUND_ROUTE -> kvTable.get(BACKGROUND_ROUTE) ?: BACKGROUND_ROUTE_DEFAULT
-      SAMPLE_RATE_ROUTE -> kvTable.get(SAMPLE_RATE_ROUTE) ?: SAMPLE_RATE_ROUTE_DEFAULT
-      else -> throw SettingsNotFoundException("$settingItem not found")
+  fun getProxySettings(): SettingsProxy = proxy
+
+  data class SettingsData(var trackBackground: Boolean, var sampleRate: Float)
+
+  open inner class SettingsProxy() {
+
+    private var settingsData: SettingsData = SettingsData(
+      kvTable.get(BACKGROUND_ROUTE)?.toBoolean() ?: BACKGROUND_ROUTE_DEFAULT,
+      kvTable.get(SAMPLE_RATE_ROUTE)?.toFloat() ?: SAMPLE_RATE_ROUTE_DEFAULT
+    )
+
+    fun getSettingsData() = settingsData
+    fun getTrackBackground() = settingsData.trackBackground
+    fun getSampleRate() = settingsData.sampleRate
+
+    fun setSettingsData(otherData: SettingsData) {
+      setTrackBackground(otherData.trackBackground)
+      setSampleRate(otherData.sampleRate)
+    }
+
+    fun setTrackBackground(trackBackground: Boolean) {
+      kvTable.put(BACKGROUND_ROUTE, trackBackground.toString())
+      settingsData.trackBackground = trackBackground
+    }
+
+    fun setSampleRate(sampleRate: Float) {
+      kvTable.put(SAMPLE_RATE_ROUTE, sampleRate.toString())
+      settingsData.sampleRate = sampleRate
+    }
+
+    fun clear() {
+      this.settingsData = SettingsProxy().getSettingsData()
     }
   }
 
   @Composable
   fun TotalSettings() {
     val state = rememberLazyListState()
+
     LazyColumn(
       modifier = Modifier
         .fillMaxWidth()
@@ -92,10 +124,7 @@ class Settings(private val db: DB) {
     ) {
       var trackBackgroundState by remember {
         mutableStateOf(
-          kvTable.getOrInitAny(
-            BACKGROUND_ROUTE,
-            defaultValue = BACKGROUND_ROUTE_DEFAULT
-          )
+          getProxySettings().getTrackBackground()
         )
       }
       var sampleRateState by remember {
@@ -112,7 +141,7 @@ class Settings(private val db: DB) {
         title = { Text(BACKGROUND_ROUTE) },
       ) {
         trackBackgroundState = it
-        kvTable.putAny(BACKGROUND_ROUTE, it)
+        getProxySettings().setTrackBackground(it)
       }
       SettingsSlider(
         title = { Text(SAMPLE_RATE_ROUTE) },
@@ -121,7 +150,7 @@ class Settings(private val db: DB) {
         valueRange = 0.5f..20.0f,
         onValueChange = { sampleRateState = it },
         onValueChangeFinished = {
-          kvTable.putAny(SAMPLE_RATE_ROUTE, sampleRateState)
+          getProxySettings().setSampleRate(sampleRateState)
         }
       )
 
@@ -137,6 +166,8 @@ class Settings(private val db: DB) {
       contentPadding = groupPaddingValues,
       enabled = true
     ) {
+      var showAlertDialog by remember { mutableStateOf(false) }
+      val context = LocalContext.current
 
 //      var selectedFolder by remember { mutableStateOf<Uri?>(null) }
 //      val exportLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(
@@ -149,7 +180,6 @@ class Settings(private val db: DB) {
 //        db.exportDatabaseToUri(exportTarget)
 //      }
 
-      val context = LocalContext.current
       var selectedFile by remember { mutableStateOf<Uri?>(null) }
       val importLauncher: ManagedActivityResultLauncher<Array<String>, Uri?> =
         rememberLauncherForActivityResult(
@@ -199,6 +229,55 @@ class Settings(private val db: DB) {
           ).show()
         }
       }
+
+      SettingsMenuLink(title = { Text("Clear data!!") }) {
+        showAlertDialog = true
+      }
+
+      if (showAlertDialog) {
+        clearDataAlertDialog(context, onSuccess = {
+          getProxySettings().clear()
+        }) {
+          showAlertDialog = false
+        }
+      }
     }
+
+
+  }
+
+  @Composable
+  fun clearDataAlertDialog(
+    context: Context,
+    onSuccess: () -> Unit = {},
+    closeDialog: () -> Unit = {}
+  ) {
+    AlertDialog(
+      onDismissRequest = {
+        // Dismiss the dialog when the user clicks outside the dialog or on the back
+        // button. If you want to disable that functionality, simply use an empty
+        // onCloseRequest.
+        closeDialog()
+      },
+      title = { Text("Clear data") },
+      text = { Text("Are you sure?") },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            db.deleteDatabase()
+            Toast.makeText(
+              context,
+              "Cleared successfully",
+              Toast.LENGTH_LONG
+            ).show()
+            onSuccess()
+            closeDialog()
+            exitProcess(0)
+          }
+        ) {
+          Text("Confirm")
+        }
+      }
+    )
   }
 }

@@ -66,6 +66,9 @@ dependencies {
   implementation(libs.androidx.material3)
   implementation(libs.androidx.material.icons.extended)
   implementation(libs.core.ktx)
+  implementation(libs.androidx.fragment.ktx)
+  implementation(libs.androidx.fragment.compose)
+  implementation(libs.play.services.location.v1800)
 
   testImplementation(libs.junit)
   androidTestImplementation(libs.androidx.junit)

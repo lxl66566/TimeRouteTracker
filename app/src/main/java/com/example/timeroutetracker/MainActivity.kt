@@ -2,8 +2,6 @@ package com.example.timeroutetracker
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -29,17 +27,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
+import androidx.fragment.compose.AndroidFragment
+import androidx.fragment.compose.rememberFragmentState
 import com.example.timeroutetracker.components.ExampleBarChart
-import com.example.timeroutetracker.components.LocationManager
+import com.example.timeroutetracker.components.GmsChecker
 import com.example.timeroutetracker.database.DB
 import com.example.timeroutetracker.ui.theme.TimeRouteTrackerTheme
 
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
   private lateinit var db: DB
   private lateinit var settings: Settings
   private lateinit var rt: RouteTracker
-  private lateinit var locationManager: LocationManager
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -47,11 +47,7 @@ class MainActivity : ComponentActivity() {
 
     db = DB(this)
     settings = Settings(db)
-    rt = RouteTracker(this, db, settings)
-    locationManager = LocationManager(this, 1000) { location ->
-      // Handle location update
-      Log.i("MyTest", "Location: ${location.latitude}, ${location.longitude}")
-    }
+//    rt = RouteTracker(db, settings)
 
     setContent {
       TimeRouteTrackerTheme {
@@ -59,16 +55,17 @@ class MainActivity : ComponentActivity() {
       }
     }
 
+    GmsChecker.checkGooglePlayServicesAvailable(this)
   }
 
   override fun onDestroy() {
     super.onDestroy()
-    locationManager.stopLocationUpdates()
   }
 
   @Composable
   fun MyApp(context: Context = applicationContext) {
     var selectedTab by remember { mutableStateOf(0) } // 当前选中的按钮索引
+    val fragmentState = rememberFragmentState()
 
     Scaffold(
       bottomBar = {
@@ -84,7 +81,10 @@ class MainActivity : ComponentActivity() {
       ) {
         when (selectedTab) {
           0 -> ExampleBarChart()
-          1 -> rt.RouteTrackerView()
+          1 -> AndroidFragment<RouteTracker>(
+            modifier = Modifier.fillMaxSize(),
+            fragmentState = fragmentState
+          ) { rt = it }
 //          1 -> rt.GoogleMapView()
           2 -> SettingsView()
         }
@@ -96,7 +96,9 @@ class MainActivity : ComponentActivity() {
   fun SettingsView() {
     settings.TotalSettings()
   }
+
 }
+
 
 @Composable
 fun BottomNavigationBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {

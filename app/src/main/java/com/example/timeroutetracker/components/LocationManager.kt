@@ -3,12 +3,11 @@ package com.example.timeroutetracker.components
 import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
-import android.os.Looper
 import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -17,21 +16,20 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
 
+private const val TAG = "LocationManager"
 
 class LocationManager(
-  private val activity: ComponentActivity,
+  private val fragment: Fragment,
   private val interval: Long,
-  private val callback: (Location) -> Unit
+  private var callback: ((Location) -> Unit)? = null
 ) {
 
   private val locationCallback: LocationCallback
-
   private val fusedLocationClient: FusedLocationProviderClient =
-    LocationServices.getFusedLocationProviderClient(activity)
-
+    LocationServices.getFusedLocationProviderClient(fragment.requireContext())
 
   private val requestPermissionLauncher =
-    activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+    fragment.registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
       if (granted) {
         startLocationUpdates()
       }
@@ -41,42 +39,46 @@ class LocationManager(
     locationCallback = object : LocationCallback() {
       override fun onLocationResult(locationResult: LocationResult) {
         val last = locationResult.lastLocation ?: return
-        callback(last)
+        callback?.let { it(last) }
       }
     }
 
     if (ContextCompat.checkSelfPermission(
-        activity,
+        fragment.requireContext(),
         Manifest.permission.ACCESS_FINE_LOCATION
       ) == PackageManager.PERMISSION_GRANTED
     ) {
-//      startLocationUpdates()
+      // Uncomment if needed
+      startLocationUpdates()
     } else {
       requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
   }
 
+  // TODO: Do not use this! crash
   fun getLocation(): LatLng? {
     if (ContextCompat.checkSelfPermission(
-        activity,
+        fragment.requireContext(),
         Manifest.permission.ACCESS_FINE_LOCATION
       ) == PackageManager.PERMISSION_GRANTED
     ) {
-      val last = fusedLocationClient.lastLocation.result
-      return LatLng(last.latitude, last.longitude)
+      val last = fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+      last.addOnSuccessListener { Log.i(TAG, "getLocation: $it") }
+      last.addOnFailureListener { Log.e(TAG, "getLocation: $it") }
+      last.addOnCompleteListener { Log.i(TAG, "getLocation: $it") }
+
+
+//      val last = fusedLocationClient.lastLocation.result
+//      return LatLng(last.latitude, last.longitude)
     } else {
       requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
     return null
   }
 
-  /*
-   * DO NOT USE THIS:
-   * java.lang.IllegalStateException: MainActivity is attempting to register while current state is RESUMED. LifecycleOwners must call register before they are STARTED.
-   */
   fun startLocationUpdates() {
     if (ActivityCompat.checkSelfPermission(
-        activity,
+        fragment.requireContext(),
         Manifest.permission.ACCESS_FINE_LOCATION
       ) == PackageManager.PERMISSION_GRANTED
     ) {
@@ -86,18 +88,22 @@ class LocationManager(
         .setMaxUpdateDelayMillis(2000)
         .setIntervalMillis(interval)
         .build()
-      Log.i("MyTest", "startLocationUpdates: $locationRequest")
+      Log.i(TAG, "startLocationUpdates: $locationRequest")
       fusedLocationClient.requestLocationUpdates(
         locationRequest,
         locationCallback,
-        Looper.getMainLooper()
+        fragment.requireActivity().mainLooper
       )
     } else {
-      Log.w("MyTest", "failed to start location updates")
+      Log.w(TAG, "failed to start location updates")
     }
   }
 
   fun stopLocationUpdates() {
     fusedLocationClient.removeLocationUpdates(locationCallback)
+  }
+
+  fun setCallback(callback: ((Location) -> Unit)?) {
+    this.callback = callback
   }
 }

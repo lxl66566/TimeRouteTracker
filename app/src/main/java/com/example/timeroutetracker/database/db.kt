@@ -66,6 +66,10 @@ interface BackupableDb : GetMembers {
       outputStream.write(buffer, 0, bytesRead)
     }
   }
+
+  fun deleteDatabase() {
+    getContext().deleteDatabase(getDatabaseName())
+  }
 }
 
 
