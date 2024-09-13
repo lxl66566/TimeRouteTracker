@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -67,12 +68,18 @@ import com.google.maps.android.compose.MarkerInfoWindowContent
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
+import kotlin.random.Random
 
 private const val TAG = "RouteTracker"
 
 val defaultLatLng = LatLng(1.3588227, 103.8742114)
-val singapore6 = LatLng(1.3430, 103.8844)
 
 val defaultCameraPosition = CameraPosition.fromLatLngZoom(defaultLatLng, 11f)
 val defaultZoom = 14f
@@ -88,17 +95,25 @@ val styleSpan = StyleSpan(
 class RouteTracker(
   db: DB? = null,
   settings: Settings? = null,
+  val mock: Boolean = true,  // TODO: remove this
 ) :
   Fragment() {
   lateinit var db: DB
   lateinit var settings: Settings
   lateinit var locationManager: LocationManager
+  lateinit var routeTable: DB.routeTable
   var callback: ((Location) -> Unit)? = null
+  private val viewModelJob = Job()
+  private val coroutineScope = CoroutineScope(Dispatchers.Main + viewModelJob)
 
   override fun onAttach(context: Context) {
     super.onAttach(context)
     db = DB(context)
     settings = Settings(db)
+    if (!mock)
+      routeTable = db.routeTable()
+    else
+      routeTable = db.routeTable("RouteMock")
   }
 
   override fun onDetach() {
@@ -198,35 +213,59 @@ class RouteTracker(
       mutableStateOf(MapProperties(mapType = mapType))
     }
     val mapVisible by remember { mutableStateOf(true) }
-    val routeTable = db.routeTable()
     val startPosState = rememberMarkerState(position = defaultLatLng)
+    val polylineSpanPointsMocked: MutableState<RouteInfo> =
+      remember { mutableStateOf(mutableListOf(defaultLatLng)) }
 
     // get database
     val todayData = routeTable.getSpan(TimeSpan.today())
     if (todayData.isNotEmpty()) {
-      _data.value = todayData
-      _data.value!!.first().let {
+      if (!mock) {
+        _data.value?.clear()
+        _data.value?.addAll(todayData)
+      } else {
+        polylineSpanPointsMocked.value = todayData
+      }
+      todayData.first().let {
         startPosState.position = it
         cameraPositionState.position = CameraPosition.fromLatLngZoom(it, defaultZoom)
       }
     }
 
-    val polylineSpanPoints = data.observeAsState().value
-    callback = { location ->
-      // Handle location update
-      val latlng = LatLng(location.latitude, location.longitude)
-      Log.i(TAG, "get Location: $latlng")
-      if (_data.value?.size == 1 && _data.value?.get(0) == defaultLatLng) {
-        _data.value?.set(0, latlng)
-        startPosState.position = latlng
-        cameraPositionState.position = CameraPosition.fromLatLngZoom(latlng, defaultZoom)
-      } else {
-        _data.value?.add(latlng)
+    val polylineSpanPoints: RouteInfo? = data.observeAsState().value
+    if (!mock) {
+      callback = { location ->
+        // Handle location update
+        val latlng = LatLng(location.latitude, location.longitude)
+        Log.i(TAG, "get Location: $latlng")
+        if (_data.value?.size == 1 && _data.value?.first()!! == defaultLatLng) {
+          _data.value?.set(0, latlng)
+          startPosState.position = latlng
+          cameraPositionState.position = CameraPosition.fromLatLngZoom(latlng, defaultZoom)
+        } else {
+          _data.value?.add(latlng)
+        }
+        routeTable.insertRouteItem(RouteItem(LocalDateTime.now(), latlng))
       }
-      routeTable.insertRouteItem(RouteItem(LocalDateTime.now(), latlng))
-    }
-    locationManager.setCallback(callback)
+      locationManager.setCallback(callback)
 //    locationManager.startLocationUpdates()
+
+    } else {
+      // mock data
+      val intervalSetting = settings.getProxySettings().getSampleRate()
+      coroutineScope.launch {
+        Log.d(TAG, "launched a coroutine to update data")
+        while (true) {
+          val last = polylineSpanPointsMocked.value.last()
+          val new = generateRandomLatLng(last)
+          withContext(Dispatchers.Main) {
+            polylineSpanPointsMocked.value.add(new)
+          }
+          routeTable.insertRouteItem(RouteItem(LocalDateTime.now(), new))
+          delay((intervalSetting * 1000).toLong())
+        }
+      }
+    }
 
 
 //  var darkMode by remember { mutableStateOf(mapColorScheme) }
@@ -250,12 +289,20 @@ class RouteTracker(
         ) {
           Text(it.title ?: "Title", color = Color.Red)
         }
+        if (!mock) {
+          Polyline(
+            points = polylineSpanPoints ?: emptyList(),
+            spans = styleSpanList,
+            tag = "Polyline",
+          )
+        } else {
+          Polyline(
+            points = polylineSpanPointsMocked.value,
+            spans = styleSpanList,
+            tag = "Polyline",
+          )
+        }
 
-        Polyline(
-          points = polylineSpanPoints ?: emptyList(),
-          spans = styleSpanList,
-          tag = "Polyline B",
-        )
 
         content()
       }
@@ -321,3 +368,22 @@ private fun MapButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
   }
 }
 
+fun generateRandomLatLng(center: LatLng, delta: Double = 0.001): LatLng {
+  Log.d(TAG, "generateRandomLatLng: center: $center")
+  val random = Random
+  // 生成一个介于 -delta 和 delta 之间的随机纬度偏移量
+  val latOffset = (random.nextDouble() * 2 * delta) - delta
+  // 生成一个介于 -delta 和 delta 之间的随机经度偏移量
+  val lngOffset = (random.nextDouble() * 2 * delta) - delta
+
+  // 应用偏移量得到新的经纬度
+  return LatLng(
+    center.latitude + latOffset,
+    center.longitude + lngOffset
+  ).also {
+    // 确保纬度在有效范围内 (-90 to 90)
+    if (it.latitude < -90 || it.latitude > 90) throw IllegalArgumentException("Latitude out of bounds")
+    // 确保经度在有效范围内 (-180 to 180)
+    if (it.longitude < -180 || it.longitude > 180) throw IllegalArgumentException("Longitude out of bounds")
+  }
+}

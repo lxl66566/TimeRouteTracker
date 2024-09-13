@@ -47,7 +47,7 @@ class MainActivity : FragmentActivity() {
 
     db = DB(this)
     settings = Settings(db)
-//    rt = RouteTracker(db, settings)
+//    rt = RouteTracker(db, settings, mock = true)
     tt = TimeTracker(this, supportFragmentManager, db, settings)
 
     setContent {
