@@ -349,7 +349,248 @@ class DB(
       return getSpan(span.start, span.end)
     }
   }
+
+  open inner class categoryTable(private val tableName: String = "CategoryInfo") {
+    init {
+      createTable()
+    }
+
+    private fun createTable() {
+      dbHelper.writableDatabase.use { db ->
+        val createTableSQL = """
+                    CREATE TABLE IF NOT EXISTS $tableName (
+                        categoryId INTEGER PRIMARY KEY AUTOINCREMENT,
+                        categoryName TEXT UNIQUE,
+                        categoryColor INTEGER
+                    )
+                """
+        db.execSQL(createTableSQL)
+      }
+    }
+
+    fun insertCategory(category: CategoryInfo) {
+      dbHelper.writableDatabase.use { db ->
+        val values = ContentValues().apply {
+          put("categoryName", category.categoryName)
+          put("categoryColor", category.categoryColor)
+        }
+        val selection = "categoryName = ?"
+        val selectionArgs = arrayOf(category.categoryName)
+        val count = db.update(tableName, values, selection, selectionArgs)
+        if (count == 0) {
+          db.insert(tableName, null, values)
+        }
+      }
+    }
+
+    fun getCategoryList(): List<CategoryInfoWithId> {
+      val cursor = dbHelper.readableDatabase.query(
+        tableName,
+        arrayOf("categoryId", "categoryName", "categoryColor"),
+        null,
+        null,
+        null,
+        null,
+        null
+      )
+      return cursor.use {
+        val result = mutableListOf<CategoryInfoWithId>()
+        while (it.moveToNext()) {
+          result.add(
+            CategoryInfoWithId(
+              it.getInt(it.getColumnIndexOrThrow("categoryId")),
+              it.getString(it.getColumnIndexOrThrow("categoryName")),
+              it.getInt(it.getColumnIndexOrThrow("categoryColor"))
+            )
+          )
+        }
+        result
+      }
+
+    }
+
+    fun getCategoryById(id: Int): CategoryInfo? {
+      val cursor = dbHelper.readableDatabase.query(
+        tableName,
+        arrayOf("categoryName", "categoryColor"),
+        "categoryId = ?",
+        arrayOf(id.toString()),
+        null,
+        null,
+        null
+      )
+      return cursor.use {
+        if (it.moveToNext()) {
+          CategoryInfo(
+            it.getString(it.getColumnIndexOrThrow("categoryName")),
+            it.getInt(it.getColumnIndexOrThrow("categoryColor"))
+          )
+        } else {
+          null
+        }
+      }
+    }
+  }
+
+  open inner class appInfoTable(
+    private val tableName: String = "AppInfo",
+    private val categoryTableName: String = "CategoryInfo"
+  ) {
+    init {
+      createTable()
+      createIndex()
+    }
+
+    private fun createTable() {
+      dbHelper.writableDatabase.use { db ->
+        val createTableSQL = """
+                    CREATE TABLE IF NOT EXISTS $tableName (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        packageName TEXT NOT NULL UNIQUE,
+                        appName TEXT,
+                        categoryId INTEGER
+                        FOREIGN KEY (categoryId) REFERENCES $categoryTableName (categoryId)
+                    )
+                """
+        db.execSQL(createTableSQL)
+      }
+    }
+
+    private fun createIndex() {
+      dbHelper.writableDatabase.use { db ->
+        val createIndexSQL = """
+                    CREATE INDEX IF NOT EXISTS idx_packageName ON $tableName (packageName)
+                """
+        db.execSQL(createIndexSQL)
+      }
+    }
+
+    fun insertAppInfo(appInfo: AppInfo) {
+      dbHelper.writableDatabase.use { db ->
+        val values = ContentValues().apply {
+          put("packageName", appInfo.packageName)
+          put("appName", appInfo.appName)
+          put("categoryId", appInfo.categoryId)
+        }
+        val selection = "packageName = ?"
+        val selectionArgs = arrayOf(appInfo.packageName)
+        val count = db.update(tableName, values, selection, selectionArgs)
+        if (count == 0) {
+          db.insert(tableName, null, values)
+        }
+      }
+    }
+
+    fun getAppInfoByPackage(packageName: String): AppInfo? {
+      val cursor = dbHelper.readableDatabase.query(
+        tableName,
+        arrayOf("packageName", "appName", "categoryId"),
+        "packageName = ?",
+        arrayOf(packageName),
+        null,
+        null,
+        null
+      )
+      return cursor.use {
+        if (it.moveToNext()) {
+          AppInfo(
+            it.getString(it.getColumnIndexOrThrow("packageName")),
+            it.getString(it.getColumnIndexOrThrow("appName")),
+            it.getInt(it.getColumnIndexOrThrow("categoryId"))
+          )
+        } else {
+          null
+        }
+      }
+    }
+  }
+
+
+  open inner class timeTable(
+    private val tableName: String,
+    private val appInfoTableName: String = "AppInfo"
+  ) {
+    init {
+      createTable()
+      createIndex()
+    }
+
+    private fun createTable() {
+      dbHelper.writableDatabase.use { db ->
+        val createTableSQL = """
+                    CREATE TABLE IF NOT EXISTS $tableName (
+                        recordId INTEGER PRIMARY KEY AUTOINCREMENT,
+                        appId INTEGER NOT NULL,
+                        time INTEGER NOT NULL, -- 持续时间以毫秒为单位
+                        datetime INTEGER NOT NULL, -- 开始时间以时间戳形式存储
+                        FOREIGN KEY (appId) REFERENCES $appInfoTableName (appId)
+                    )
+                """
+        db.execSQL(createTableSQL)
+      }
+    }
+
+    private fun createIndex() {
+      dbHelper.writableDatabase.use { db ->
+        val createIndexSQL = """
+                    CREATE INDEX IF NOT EXISTS idx_datetime ON $tableName (datetime)
+                """
+        db.execSQL(createIndexSQL)
+      }
+    }
+
+    fun insertAppTimeRecord(insertion: AppTimeInsertion) {
+      dbHelper.writableDatabase.use { db ->
+        val values = ContentValues().apply {
+          put("time", DurationConverter.from(insertion.time)) // 假设时间是以毫秒为单位
+          put("datetime", LocalDateTimeConverter.from(insertion.datetime)) // 时间戳格式
+        }
+
+        // 查询 appId
+        val query = """
+            SELECT appId 
+            FROM AppInfo 
+            WHERE packageName = ?
+        """
+        val cursor = db.rawQuery(query, arrayOf(insertion.packageName))
+
+        if (cursor.moveToFirst()) {
+          val appId = cursor.getInt(cursor.getColumnIndexOrThrow("appId"))
+          cursor.close()
+
+          // 插入记录
+          values.put("appId", appId)
+          db.insert("AppTimeRecord", null, values)
+        } else {
+          cursor.close()
+          // 处理没有找到对应 appId 的情况
+          throw IllegalArgumentException("Package name ${insertion.packageName} not found in AppInfo.")
+        }
+      }
+    }
+
+
+    fun getTimeRecord(appId: Int, datetime: LocalDateTime): AppTimeRecord? {
+      val cursor = dbHelper.readableDatabase.query(
+        tableName,
+        arrayOf("time"),
+        "appId = ? AND datetime = ?",
+        arrayOf(appId.toString(), LocalDateTimeConverter.from(datetime).toString()),
+        null,
+        null,
+        null
+      )
+      return cursor.use {
+        if (it.moveToNext()) {
+          AppTimeRecord(
+            appId,
+            DurationConverter.to(it.getLong(it.getColumnIndexOrThrow("time"))),
+            LocalDateTimeConverter.to(it.getLong(it.getColumnIndexOrThrow("datetime")))
+          )
+        } else {
+          null
+        }
+      }
+    }
+  }
 }
-
-
-

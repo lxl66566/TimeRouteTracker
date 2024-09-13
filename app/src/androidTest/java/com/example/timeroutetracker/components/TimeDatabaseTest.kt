@@ -65,9 +65,9 @@ class AppTimeDaoTest {
     val appInfo =
       AppInfo(id = 1, packageName = "com.example.app", appName = "Example App", categoryId = 1)
     val appTimeRecord =
-      AppTimeRecord(id = 1, appId = 1, time = Duration.ofMinutes(30), date = Date())
+      AppTimeRecord(id = 1, appId = 1, time = Duration.ofMinutes(30), datatime = Date())
     dao.insertAppInfo(appInfo)
-    dao.updateAppTimeByDateAndName(appTimeRecord.date, "Example App", Duration.ofMinutes(60))
+    dao.updateAppTimeByDateAndName(appTimeRecord.datatime, "Example App", Duration.ofMinutes(60))
     val result = dao.getAllAppTimeQueries()
     assertEquals(0, result.size) // 没有插入 AppTimeRecord，应该返回空列表
   }
@@ -86,7 +86,7 @@ class AppTimeDaoTest {
     val appInfo =
       AppInfo(id = 1, packageName = "com.example.app", appName = "Example App", categoryId = 1)
     val appTimeRecord =
-      AppTimeRecord(id = 1, appId = 1, time = Duration.ofMinutes(30), date = Date())
+      AppTimeRecord(id = 1, appId = 1, time = Duration.ofMinutes(30), datatime = Date())
     dao.insertAppInfo(appInfo)
     dao.insertAppTimeRecord(appTimeRecord)
     val result = dao.getAllAppTimeQueries()

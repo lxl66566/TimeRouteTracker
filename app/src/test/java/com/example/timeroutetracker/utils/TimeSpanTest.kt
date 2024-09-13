@@ -1,9 +1,13 @@
 package com.example.timeroutetracker.utils
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.Assert.*
 import java.time.Duration
 import java.time.LocalDateTime
+
 
 class TimeSpanTest {
 
@@ -102,5 +106,24 @@ class TimeSpanTest {
       LocalDateTime.of(2024, 9, 1, 12, 0)
     )
     assertEquals(120, timeSpan.toMinutes())
+  }
+
+  @Test
+  fun testIsDay() {
+    val timeSpan = TimeSpan.today()
+    assertTrue(timeSpan.isDay())
+  }
+
+  @Test
+  fun testPrevSpan() {
+    val timeSpan = TimeSpan(
+      LocalDateTime.of(2024, 9, 1, 10, 0),
+      LocalDateTime.of(2024, 9, 2, 10, 0).minusNanos(1)
+    )
+    assert(timeSpan.isDay())
+    val prevSpan = timeSpan.prevSpan()
+    assert(prevSpan.isDay())
+    assertEquals(LocalDateTime.of(2024, 8, 31, 10, 0), prevSpan.start)
+    assertEquals(LocalDateTime.of(2024, 9, 1, 10, 0).minusNanos(1), prevSpan.end)
   }
 }

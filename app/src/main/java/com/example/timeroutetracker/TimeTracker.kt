@@ -4,9 +4,10 @@ import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import com.example.timeroutetracker.components.PermissionManager
+import com.example.timeroutetracker.database.DB
 import com.example.timeroutetracker.utils.TimeSpan
 
-class TimeTracker(private val context: Context) {
+class TimeTracker(private val context: Context, private val db: DB) {
   private final val permManager = PermissionManager(context)
 
   init {

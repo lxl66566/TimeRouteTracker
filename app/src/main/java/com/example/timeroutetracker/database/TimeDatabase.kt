@@ -1,15 +1,8 @@
 package com.example.timeroutetracker.database
 
 import java.time.Duration
-import java.util.Date
+import java.time.LocalDateTime
 
-/*
- * 存储分类信息
- */
-data class CategoryInfo(
-  val categoryName: String,
-  val categoryColor: Int,
-)
 
 /*
  * 存储应用信息
@@ -26,7 +19,13 @@ data class AppInfo(
 data class AppTimeRecord(
   val appId: Int,
   val time: Duration,
-  val date: Date,
+  val datatime: LocalDateTime,
+)
+
+data class AppTimeInsertion(
+  val packageName: String,
+  val time: Duration,
+  val datetime: LocalDateTime,
 )
 
 /*
@@ -35,12 +34,14 @@ data class AppTimeRecord(
 data class AppTimeQuery(
   // 应用名
   val appName: String,
-  // 分类
-  val categoryId: Int,
+  // 分类的颜色
+  val categoryColor: Int,
   // 开始时间
-  val date: Date,
+  val datetime: LocalDateTime,
   // 持续时间
   val time: Duration,
 )
 
 typealias AppTimeQueries = List<AppTimeQuery>
+
+
