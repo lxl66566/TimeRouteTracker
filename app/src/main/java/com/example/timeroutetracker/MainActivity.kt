@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.compose.AndroidFragment
 import androidx.fragment.compose.rememberFragmentState
-import com.example.timeroutetracker.components.ExampleBarChart
 import com.example.timeroutetracker.components.GmsChecker
 import com.example.timeroutetracker.database.DB
 import com.example.timeroutetracker.ui.theme.TimeRouteTrackerTheme
@@ -40,6 +39,7 @@ class MainActivity : FragmentActivity() {
   private lateinit var db: DB
   private lateinit var settings: Settings
   private lateinit var rt: RouteTracker
+  private lateinit var tt: TimeTracker
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -48,6 +48,7 @@ class MainActivity : FragmentActivity() {
     db = DB(this)
     settings = Settings(db)
 //    rt = RouteTracker(db, settings)
+    tt = TimeTracker(this, supportFragmentManager, db, settings)
 
     setContent {
       TimeRouteTrackerTheme {
@@ -80,7 +81,7 @@ class MainActivity : FragmentActivity() {
           .padding(innerPadding)
       ) {
         when (selectedTab) {
-          0 -> ExampleBarChart()
+          0 -> tt.UsageStatsView()
           1 -> AndroidFragment<RouteTracker>(
             modifier = Modifier.fillMaxSize(),
             fragmentState = fragmentState
@@ -138,3 +139,4 @@ fun BottomNavigationBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
 }
 
 data class NavItem(val label: String, val icon: ImageVector)
+

@@ -50,6 +50,7 @@ dependencies {
   implementation(libs.play.services.maps)
   implementation(libs.androidx.constraintlayout)
   implementation(libs.play.services.location)
+  implementation(libs.material)
   testImplementation(kotlin("test"))
   androidTestImplementation(kotlin("test"))
   testImplementation(libs.kotlin.test.junit)
